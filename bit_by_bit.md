@@ -1,129 +1,218 @@
-# Вариант 3 - Вычисление ленточного определителя (трехдиагональной матрицы)
-## Условия
+# Вариант 1. Диаграмма классов пакета `schedules` (ленточная стратегия)
 
-$$    
-A =     
- \begin{pmatrix}    
-  11 & 2 & 0 & \cdots & 0 & 0 \\    
-  14 & 11 & 2 & \cdots & 0 & 0 \\    
-  0 & 14 & 11 & \cdots & 0 & 0 \\    
-  \vdots  & \vdots & \vdots & \ddots & \vdots & \vdots  \\    
-  0 & 0 & 0 & \cdots & 11 & 2 \\    
-  0 & 0 & 0 & \cdots & 14 & 11     
- \end{pmatrix}    
-$$
+Цель варианта 1 — разработать диаграмму классов пакета `schedule_pack` (в проекте
+он реализован как пакет `schedules`) с использованием библиотеки
+[mermaid-js – Class diagram](https://github.com/mermaid-js/mermaid#class-diagram).
 
-Порядок матрицы *n* = 12
+Диаграмма должна показывать:
 
-Чтобы найти нужный порядок матрицы, необходимо найти общую формулу, а затем в неё подставить наш порядок.
+- основные сущности предметной области: задачи, элементы расписания;
+- абстрактное расписание и конкретную реализацию ленточной стратегии;
+- базовые классы для обработки ошибок, связанные с расписанием.
 
-## 1. Выводим рекуррентное соотношение
-$$
-\Delta_n = 11 \cdot
-\begin{pmatrix}
- 11 & 2 & \cdots & 0 & 0 \\
- 14 & 11 & \cdots & 0 & 0 \\
- \vdots & \vdots & \ddots & \vdots & \vdots \\
- 0 & 0 & \cdots & 11 & 2 \\
- 0 & 0 & \cdots & 14 & 11
-\end{pmatrix}
-- 2 \cdot
-\begin{pmatrix}
- 14 & 2 & \cdots & 0 & 0 \\
- 0 & 11 & \cdots & 0 & 0 \\
- \vdots & \vdots & \ddots & \vdots & \vdots \\
- 0 & 0 & \cdots & 11 & 2 \\
- 0 & 0 & \cdots & 14 & 11
-\end{pmatrix} = \\[8pt]
-= 11 \cdot \Delta_{n-1} - 2 \cdot 14 \cdot
-\begin{pmatrix}
- 11 & \cdots & 0 & 0 \\
- \vdots & \ddots & \vdots & \vdots \\
- 0 & \cdots & 11 & 2 \\
- 0 & \cdots & 14 & 11
-\end{pmatrix}
-= 11 \cdot \Delta_{n-1} - 2 \cdot 14 \cdot \Delta_{n-2} = 11\cdot \Delta_{n-1} - 28 \cdot \Delta_{n-2}
-$$
+---
 
-Получили рекуррентное соотношение **$(11 \cdot \Delta_{n-1} - 28 \cdot \Delta_{n-2})$**:
-* однородное
-* линейное
-* глубины два
-* с постоянными коэффициентами
+## 1. Диаграмма классов (Mermaid)
 
-## 2. Характеристическое уравнение
-Чтобы вывести общую формулу, нужно построить характеристическое уравнение:
-$$
-\\
-\lambda^n = 11\lambda^{n-1} - 28\lambda^{n-2}
-\\
-$$
+```mermaid
+classDiagram
+    direction TB
 
-Делим уравнение на $\lambda^{n-2}$:
+    %% ===== Основные классы расписания =====
 
-$$
-\\
-\dfrac{\lambda^n}{\lambda^{n-2}} = \dfrac{11\lambda^{n-1}}{\lambda^{n-2}} - \dfrac{28\lambda^{n-2}}{\lambda^{n-2}}
-$$
+    class Task {
+        - _name: str
+        - _duration: int|float
+        + name: str
+        + duration: int|float
+        + __str__(): str
+        + __eq__(other)
+        + __ne__(other)
+        + __hash__(): int
+    }
 
-В итоге получаем квадратное уравнение:
-$\\
-\lambda^2 = 11\lambda - 28
-\\
-\lambda^2 - 11\lambda + 28 = 0
-$
+    class ScheduleItem {
+        - __task: Task|None
+        - __start: float
+        - __duration: float
+        + task_name: str
+        + is_downtime: bool
+        + start: float
+        + duration: float
+        + end: float
+        + __str__(): str
+        + __eq__(other)
+        + __ne__(other)
+        + __hash__(): int
+    }
 
-С помощью дискриминанта находим чему равны $\lambda_{1}$ и $\lambda_{2}$:
+    class AbstractSchedule {
+        <<abstract>>
+        - _tasks: list~Task~
+        - _executor_schedule: list~list~ScheduleItem~~
+        + tasks: tuple~Task~
+        + task_count: int
+        + executor_count: int
+        + duration: float
+        + get_schedule_for_executor(executor_idx: int): tuple~ScheduleItem~
+    }
 
-$D = 121 - 4 \cdot 1 \cdot 28 = 121 - 112 = 9$
+    class Schedule {
+        - _duration: float
+        + duration: float
+        - __calculate_duration(): float
+        - __fill_schedule_for_each_executor(): None
+    }
 
-$$ \lambda_{1} = \dfrac{11 - 3}{2} = 4$$
+    %% Наследование и связи между основными классами
+    Schedule --|> AbstractSchedule
 
-$$ \lambda_{2} = \dfrac{11 + 3}{2} = 7$$
+    AbstractSchedule "1" o-- "0..*" Task : tasks
+    AbstractSchedule "1" o-- "0..*" ScheduleItem : executor_schedule
+    ScheduleItem --> Task : task
 
-## 3. Сравнение значений $\lambda_{1}$  и $\lambda_{2}$
-Видим, что $\lambda_{1} \neq \lambda_{2}$, можем делать заготовку для общей формулы
+    %% ===== Классы, связанные с обработкой ошибок =====
 
-## 4. Общая формула (заготовка)
-$$\Delta_n = С_1(4)^n + С_2(7)^n$$
+    class ErrorMessages {
+        <<enum>>
+        + NOT_STR_NAME
+        + EMPTY_NAME
+        + NOT_NUMBER_DUR
+        + NEG_NUMBER_DUR
+        + NOT_LIST_DUR
+        + EMPTY_LIST_DUR
+        + STAGE_NOT_INT
+        + STAGE_OUT_OF_RANGE
+        + START_NOT_NUMBER
+        + START_NEG_NUMBER
+        + DUR_NOT_NUMBER
+        + DUR_NOT_POS_NUMBER
+        + TASKS_NOT_LIST
+        + TASKS_EMPTY_LIST
+        + EXECUTOR_NOT_INT
+        + EXECUTOR_OUT_OF_RANGE
+    }
 
-## 5. Находим константы
-$$\Delta_1 = 11 $$
-$$\Delta2 = \begin{vmatrix} 11 & 2 \\ 14 & 11 \end{vmatrix} = 11 \cdot 11 - 2 \cdot 14 = 93$$
-**Получаем первое уравнение при n = 1**: $$11 = 4C_1 + 7C_2$$
+    class ErrorTemplates {
+        <<enum>>
+        + NOT_NUMBER_DUR
+        + NEG_NUMBER_DUR
+        + INVALID_TASK
+        + INVALID_STAGE_CNT
+    }
 
-**Получаем второе уравнение при n = 2**: $$93 = (4)^2C_1 + (7)^2C_2$$
+    class ScheduleError {
+        + message: str
+    }
 
-Получаем систему уравений:
-$$
-\begin{cases}
-11 = 4C_1 + 7C_2 \\
-93 = (4)^2C_1 + (7)^2C_2
-\end{cases}
-$$
+    class TaskArgumentError
+    class ScheduleItemError
+    class ScheduleArgumentError
 
-Чтобы найти $C_2$, нужно первое уравнение домножить на $(-4)$, а затем сложить со вторым уравнением. Тогда получаем следующее:
-$$21C_2 = 49$$
-$$C_2 = \dfrac{49}{21} = \dfrac{7}{3}$$
+    %% Наследование для ошибок
+    TaskArgumentError --|> ScheduleError
+    ScheduleItemError --|> ScheduleError
+    ScheduleArgumentError --|> ScheduleError
+```
+---
+## 2. Разбор диаграммы
 
-Подставим $C_2$ в первое уравнение и найдём $C_1$:
-$$4С_1 = 11 - 7 \cdot \dfrac{7}{3}$$
-$$4С_1 = \dfrac{-16}{3}$$
-$$С_1 = \dfrac{-4}{3}$$
+### 2.1. Основные сущности
 
-## 5. Подставляем $С_1$ и $С_2$ в общую формулу
-Подставляем в общую формулу полученные значения констант:
-$$ \Delta_n = \dfrac{-4}{3} \cdot (4)^n + \dfrac{7}{3} \cdot (7)^n$$
+**Task**
+* Представляет одну задачу для расписания.
+* Содержит закрытые поля _name и _duration.
+* Через свойства name и duration предоставляет доступ только для чтения.
+* Переопределяет __str__, __eq__, __hash__, чтобы:
+    + удобно печатать задачи;
+    + сравнивать их по значению;
+    + использовать в коллекциях (например, в set и как ключи в dict).
 
-## 6. Вычислим ленточный определитель порядка n = 12
-$$ \Delta_{12} = \dfrac{-4}{3} \cdot (4)^{12} + \dfrac{7}{3} \cdot (7)^{12} $$
-$$ \Delta_{12} = \dfrac{-4^{13}}{3} + \dfrac{7^{13}}{3} $$
-$$ \Delta_{12} = \dfrac{7^{13} - 4^{13}}{3}$$
-$$ \Delta_{12} = \dfrac{96889010407 - 67108864}{3}$$
-$$ \Delta_{12} = \dfrac{96821901543}{3}$$
-$$ \Delta_{12} = 32273967181$$
+**ScheduleItem**
+* Описывает один элемент расписания:
+    + либо фрагмент выполнения задачи (task не None);
+    + либо период простоя (task равен None, is_downtime == True).
+* Поля:
+    + __task: Task | None — ссылка на задачу или None;
+    + __start: float — момент начала;
+    + __duration: float — длительность.
+* Свойства:
+    + task_name — имя задачи или "downtime";
+    + start, duration, end — параметры временного интервала.
+* Используется как «кирпичик» при построении расписания исполнителей.
 
-## Ответ к задаче
-Ленточный определитель порядка n = 12 равен:
+### 2.2. Абстрактное и конкретное расписание
 
-$$32273967181$$
+**AbstractSchedule**
+* Абстрактный базовый класс для любого расписания.
+* Хранит:
+    + _tasks: list[Task] — исходный список задач;
+    + _executor_schedule: list[list[ScheduleItem]] — таблица расписаний:
+        - внешний список — исполнители,
+        - внутренние списки — элементы расписания каждого исполнителя.
+* Свойства:
+    + tasks — кортеж задач (только для чтения);
+    + task_count — количество задач;
+    + executor_count — количество исполнителей;
+    + duration — общая длительность расписания (абстрактное свойство).
+* Метод:
+    + get_schedule_for_executor(executor_idx) — возвращает расписание конкретного исполнителя с проверкой корректности индекса.
+* Использует композицию:
+    + одно расписание владеет многими задачами (tasks);
+    + и многими элементами расписания (executor_schedule).
+
+**Schedule**
+* Конкретная реализация расписания по ленточной стратегии.
+* Наследуется от AbstractSchedule.
+* Дополнительно хранит:
+    + _duration: float — минимальная длительность оптимального расписания (Topt).
+* Свойства и методы:
+    + duration — реализует абстрактное свойство базового класса и возвращает _duration;
+    + __calculate_duration() — приватный метод, который:
+        - считает сумму длительностей задач;
+        - находит Tmax и Tavg;
+        - выбирает Topt = max(Tmax, Tavg);
+    + __fill_schedule_for_each_executor() — приватный метод, который:
+        - рассматривает все задачи как одну временную линию;
+        - разрезает её на «ленты» длиной Topt;
+        - распределяет ленты между исполнителями;
+        - при необходимости делит задачи на несколько ScheduleItem;
+        - добавляет элементы простоя, когда исполнитель не занят.
+
+### 2.3. Обработка ошибок
+
+**ScheduleError**
+* Базовый класс для всех ошибок пакета расписаний.
+* Хранит текст сообщения об ошибке (message).
+* Позволяет обрабатывать все ошибки расписания одним блоком `except ScheduleError`.
+
+**TaskArgumentError**
+* Наследуется от ScheduleError.
+* Выбрасывается при некорректных параметрах задач:
+    + название не является строкой;
+    + название пустое;
+    + длительность не число, нулевая или отрицательная.
+
+**ScheduleItemError**
+* Наследуется от ScheduleError.
+* Выбрасывается при некорректных параметрах элементов расписания:
+    + start не число или отрицательный;
+    + duration не число, нулевая или отрицательная.
+
+**ScheduleArgumentError**
+* Наследуется от ScheduleError.
+* Используется при ошибках инициализации расписания:
+    + список задач не является list;
+    + список задач пуст;
+    + в списке есть элементы, которые не являются Task;
+    + индекс исполнителя выходит за допустимый диапазон.
+
+**ErrorMessages**
+* Перечисление строковых констант с готовыми текстами ошибок.
+* Используется во всех классах для формирования сообщений об ошибках.
+* Позволяет не дублировать строки и централизованно менять тексты сообщений.
+
+**ErrorTemplates**
+* Перечисление шаблонов сообщений об ошибках.
+* Применяется, когда нужно подставить параметры (например, номер задачи в списке) в текст ошибки.
+* Делает сообщения более информативными, не захламляя код строковыми конкатенациями.
