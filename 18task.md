@@ -548,6 +548,11 @@ K -- -C--> T
 P -- +C--> U
 P -- -C--> V
 
+linkStyle 0 stroke:green,stroke-width:2px
+linkStyle 2 stroke:green,stroke-width:2px
+linkStyle 7 stroke:green,stroke-width:2px
+linkStyle 14 stroke:green,stroke-width:2px
+linkStyle 19 stroke:green,stroke-width:2px
 style V fill:#4f4f
 ```
 
